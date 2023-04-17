@@ -1,4 +1,4 @@
-#Masters thesis
+# Masters thesis
 Goal of my masters thesis is to implement algorithm that would allow user to control mobile platform using hand gestures. 
 To achieve my goal i'll be basing on Mediapipe hand gestures model that detects 21 hand landmarks.
 ## Required modules:
