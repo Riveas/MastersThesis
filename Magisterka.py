@@ -6,8 +6,15 @@
 
 import mediapipe as mp
 import cv2
+import math
 import numpy as np
 import uuid
+
+def slope(x1, x2, y1, y2):
+    if x1 == x2:
+        x1 = x1 + 1
+    return (y2-y1)/(x1-x2)
+
 
 if __name__ == '__main__':
 
@@ -22,20 +29,20 @@ if __name__ == '__main__':
             ret, frame = cap.read()
 
             image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-
             image = cv2.flip(image, 1)
 
-            image.flags.writeable = False
+            dimensions = frame.shape
 
             results = hands.process(image)
 
-            image.flags.writeable = True
-
             image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
-            print(results)
-
             fingerCount = 0
+            finLen = 0
+            x1 = 0
+            x2 = 0
+            y1 = 0
+            y2 = 0
 
             if results.multi_hand_landmarks:
 
@@ -61,7 +68,16 @@ if __name__ == '__main__':
                         if handLandmarks[20][1] < handLandmarks[18][1]:
                             fingerCount = fingerCount + 1
 
-                    # Draw hand landmarks
+                    if handLabel == "Left":
+                        x1 = handLandmarks[5][0]*dimensions[1]
+                        y1 = handLandmarks[5][1]*dimensions[0]
+
+                        x2 = handLandmarks[8][0]*dimensions[1]
+                        y2 = handLandmarks[8][1]*dimensions[0]
+
+                    finLen = math.sqrt((x2-x1)**2 + (y2-y1)**2)
+
+
                     mp_drawing.draw_landmarks(
                         image,
                         hand_landmarks,
@@ -69,10 +85,20 @@ if __name__ == '__main__':
                         mp_drawing_styles.get_default_hand_landmarks_style(),
                         mp_drawing_styles.get_default_hand_connections_style())
 
+            line1 = ((math.floor(x1), math.floor(y1)), (math.floor(x2), math.floor(y2)))
+            line2 = ((math.floor(x1), math.floor(y2)), (math.floor(x2), math.floor(y2)))
+
+            slope1 = slope(line1[0][0], line1[0][1], line1[1][0], line1[1][1])
+            slope2 = slope(line2[0][0], line2[0][1], line2[1][0], line2[1][1])
+            angle = abs(math.degrees(math.atan((slope2-slope1)/(1+(slope2*slope1)))))
+
             cv2.putText(image, 'predkosc: ' + str(fingerCount * 20) + '%', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1,
                         (0, 255, 255), 2)
+            cv2.putText(image, str(angle), (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
 
-            # narysowanie zidentyfikowanych punktow charakterystycznych dloni:
+            cv2.line(image, (round(x2), round(y2)), (round(x1), round(y2)), (0, 255, 255), 2)
+            cv2.line(image, (round(x1), round(y1)), (round(x2), round(y2)), (0, 255, 255), 2)
+
             if results.multi_hand_landmarks:
                 for num, hand in enumerate(results.multi_hand_landmarks):
                     mp_drawing.draw_landmarks(image, hand, mp_hands.HAND_CONNECTIONS,
@@ -82,10 +108,6 @@ if __name__ == '__main__':
                                               )
 
             cv2.imshow('Hand Tracking', image)
-
-            # zapisywanie do folderu:
-            #          cv2.imwrite(os.path.join('Output Images', '{}.jpg'.format(uuid.uuid1())), image)
-            #          cv2.imshow('Hand Tracking', image)
 
             if cv2.waitKey(10) & 0xFF == 27:
                 break
