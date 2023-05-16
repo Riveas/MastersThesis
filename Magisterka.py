@@ -38,11 +38,14 @@ if __name__ == '__main__':
             image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
             fingerCount = 0
-            finLen = 0
+            len1 = 1
+            len2 = 1
             x1 = 0
             x2 = 0
             y1 = 0
             y2 = 0
+            angle = 0
+            direction = ''
 
             if results.multi_hand_landmarks:
 
@@ -75,8 +78,15 @@ if __name__ == '__main__':
                         x2 = handLandmarks[8][0]*dimensions[1]
                         y2 = handLandmarks[8][1]*dimensions[0]
 
-                    finLen = math.sqrt((x2-x1)**2 + (y2-y1)**2)
+                        len1 = math.sqrt((x1 - x2) ** 2)
+                        len2 = math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
 
+                        angle = round(math.asin(len1 / len2) * 180 / math.pi)
+
+                        if x1 < x2:
+                            direction = 'Right'
+                        else:
+                            direction = 'Left'
 
                     mp_drawing.draw_landmarks(
                         image,
@@ -85,16 +95,9 @@ if __name__ == '__main__':
                         mp_drawing_styles.get_default_hand_landmarks_style(),
                         mp_drawing_styles.get_default_hand_connections_style())
 
-            line1 = ((math.floor(x1), math.floor(y1)), (math.floor(x2), math.floor(y2)))
-            line2 = ((math.floor(x1), math.floor(y2)), (math.floor(x2), math.floor(y2)))
-
-            slope1 = slope(line1[0][0], line1[0][1], line1[1][0], line1[1][1])
-            slope2 = slope(line2[0][0], line2[0][1], line2[1][0], line2[1][1])
-            angle = abs(math.degrees(math.atan((slope2-slope1)/(1+(slope2*slope1)))))
-
-            cv2.putText(image, 'predkosc: ' + str(fingerCount * 20) + '%', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1,
+            cv2.putText(image, 'Speed: ' + str(fingerCount * 20) + '%', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1,
                         (0, 255, 255), 2)
-            cv2.putText(image, str(angle), (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
+            cv2.putText(image, str(angle) + ' ' + direction, (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
 
             cv2.line(image, (round(x2), round(y2)), (round(x1), round(y2)), (0, 255, 255), 2)
             cv2.line(image, (round(x1), round(y1)), (round(x2), round(y2)), (0, 255, 255), 2)
