@@ -7,8 +7,8 @@
 import mediapipe as mp
 import cv2
 import math
+from keras.models import load_model
 import numpy as np
-import uuid
 
 def info(image):
     fingerCount = 0
@@ -33,8 +33,8 @@ def info(image):
             for landmarks in hand_landmarks.landmark:
                 handLandmarks.append([landmarks.x, landmarks.y])
 
-            if handLabel == "Right":
-                if handLandmarks[4][0] < handLandmarks[3][0]:
+            if handLabel == "Left":
+                if handLandmarks[4][0] > handLandmarks[3][0]:
                     fingerCount = fingerCount + 1
                 if handLandmarks[8][1] < handLandmarks[6][1]:
                     fingerCount = fingerCount + 1
@@ -45,7 +45,7 @@ def info(image):
                 if handLandmarks[20][1] < handLandmarks[18][1]:
                     fingerCount = fingerCount + 1
 
-            if handLabel == "Left":
+            if handLabel == "Right":
                 x1 = handLandmarks[5][0] * dimensions[1]
                 y1 = handLandmarks[5][1] * dimensions[0]
 
@@ -74,7 +74,7 @@ def info(image):
 
 def printInfo(image):
 
-    cv2.putText(image, 'Speed: ' + str(fingerCount * 20) + '%', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1,
+    cv2.putText(image, 'Speed: ' + str(speed) + '%', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1,
                 (0, 255, 255), 2)
     cv2.putText(image, str(angle) + ' ' + direction, (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
 
@@ -90,6 +90,12 @@ if __name__ == '__main__':
     mp_hands = mp.solutions.hands
     mp_drawing_styles = mp.solutions.drawing_styles
 
+    mode = 'steering'
+    holder = 'gesture'
+
+    model = load_model("keras_Model.h5", compile=False)
+    class_names = open("labels.txt", "r").readlines()
+
     cap = cv2.VideoCapture(0)
 
     with mp_hands.Hands(min_detection_confidence=0.8, min_tracking_confidence=0.5) as hands:
@@ -99,15 +105,24 @@ if __name__ == '__main__':
             image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             image = cv2.flip(image, 1)
 
+            imageGesture = cv2.resize(image, (224, 224), interpolation=cv2.INTER_AREA)
+
             dimensions = frame.shape
 
-            results = hands.process(image)
+            if cv2.waitKey(5) == ord('k'):
+                mode, holder = holder, mode
+
+            if mode == 'steering':
+                results = hands.process(image)
 
             image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
             angle, direction, fingerCount, x1, x2, y1, y2, image = info(image)
+            angle = round(angle/5) * 5
+            speed = fingerCount * 20
 
-            image = printInfo(image)
+            if mode == 'steering':
+                image = printInfo(image)
 
             if results.multi_hand_landmarks:
                 for num, hand in enumerate(results.multi_hand_landmarks):
@@ -116,6 +131,21 @@ if __name__ == '__main__':
                                                                      circle_radius=1),
                                               mp_drawing.DrawingSpec(color=(0, 140, 255), thickness=1, circle_radius=1),
                                               )
+
+
+            imageGesture = np.asarray(imageGesture, dtype=np.float32).reshape(1, 224, 224, 3)
+            imageGesture = (imageGesture / 127.5) - 1
+
+            if mode == 'gesture':
+                prediction = model.predict(imageGesture)
+                index = np.argmax(prediction)
+                class_name = class_names[index]
+                confidence_score = prediction[0][index]
+                gesture = class_name[2:]
+                cv2.putText(image, 'Gesture: ' + str(gesture), (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1,
+                            (0, 255, 255), 2)
+                cv2.putText(image, 'Confidence: ' + str(np.round(confidence_score * 100))[:-2], (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255),
+                            2)
 
             cv2.imshow('Hand Tracking', image)
 
