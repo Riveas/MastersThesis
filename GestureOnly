@@ -1,0 +1,54 @@
+# This is a sample Python script.
+
+# Press Shift+F10 to execute it or replace it with your code.
+# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
+
+
+import mediapipe as mp
+import cv2
+import math
+from keras.models import load_model
+import numpy as np
+
+
+if __name__ == '__main__':
+
+    model = load_model("keras_Model.h5", compile=False)
+    class_names = open("labels.txt", "r").readlines()
+
+    cap = cv2.VideoCapture(0)
+    mode = "gesture"
+
+    while cap.isOpened():
+        ret, frame = cap.read()
+
+        image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        image = cv2.flip(image, 1)
+
+        imageGesture = cv2.resize(image, (224, 224), interpolation=cv2.INTER_AREA)
+
+        dimensions = frame.shape
+
+        image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+
+        imageGesture = np.asarray(imageGesture, dtype=np.float32).reshape(1, 224, 224, 3)
+        imageGesture = (imageGesture / 127.5) - 1
+
+        if mode == 'gesture':
+            prediction = model.predict(imageGesture)
+            index = np.argmax(prediction)
+            class_name = class_names[index]
+            confidence_score = prediction[0][index]
+            gesture = class_name[2:]
+            cv2.putText(image, 'Gesture: ' + str(gesture), (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1,
+                        (0, 255, 255), 2)
+            cv2.putText(image, 'Confidence: ' + str(np.round(confidence_score * 100))[:-2], (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255),
+                        2)
+
+        cv2.imshow('Hand Tracking', image)
+
+        if cv2.waitKey(10) & 0xFF == 27:
+             break
+
+    cap.release()
+    cv2.destroyAllWindows()
