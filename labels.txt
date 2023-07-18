@@ -1,0 +1,3 @@
+0 nic
+1 ok
+2 victory
