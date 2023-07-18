@@ -4,11 +4,22 @@
 # Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
 
 
-import mediapipe as mp
 import cv2
 import math
 from keras.models import load_model
 import numpy as np
+import time
+
+def victory():
+    pass
+
+def okejka():
+    pass
+
+def muka():
+    pass
+
+
 
 
 if __name__ == '__main__':
@@ -17,7 +28,7 @@ if __name__ == '__main__':
     class_names = open("labels.txt", "r").readlines()
 
     cap = cv2.VideoCapture(0)
-    mode = "gesture"
+    t1 = 0
 
     while cap.isOpened():
         ret, frame = cap.read()
@@ -34,16 +45,35 @@ if __name__ == '__main__':
         imageGesture = np.asarray(imageGesture, dtype=np.float32).reshape(1, 224, 224, 3)
         imageGesture = (imageGesture / 127.5) - 1
 
-        if mode == 'gesture':
-            prediction = model.predict(imageGesture)
-            index = np.argmax(prediction)
-            class_name = class_names[index]
-            confidence_score = prediction[0][index]
-            gesture = class_name[2:]
-            cv2.putText(image, 'Gesture: ' + str(gesture), (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1,
-                        (0, 255, 255), 2)
-            cv2.putText(image, 'Confidence: ' + str(np.round(confidence_score * 100))[:-2], (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255),
-                        2)
+        prediction = model.predict(imageGesture)
+        index = np.argmax(prediction)
+        class_name = class_names[index]
+        confidence_score = prediction[0][index]
+        gesture = class_name[2:]
+        cv2.putText(image, 'Gesture: ' + str(gesture), (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1,
+                    (0, 255, 255), 2)
+        cv2.putText(image, 'Confidence: ' + str(np.round(confidence_score * 100))[:-2], (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255),
+                    2)
+
+        if 'nic' in gesture:
+            t1 = time.time()
+            t2 = t1
+            
+        if 'nic' not in gesture:
+            t2 = time.time()
+            czas = t2 - t1
+            cv2.putText(image, 'Time: ' + str(round(czas,2)) + 's', (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255),
+                    2)
+
+        if czas > 3:
+            match gesture:
+                case 'okejka':
+                    okejka()
+                case 'victory':
+                    victory()
+                case 'muka':
+                    muka()
+
 
         cv2.imshow('Hand Tracking', image)
 
